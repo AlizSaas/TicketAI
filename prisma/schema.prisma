@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+
+}
+
+// prisma/schema.prisma
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  users     User[]
+  tickets   Ticket[]
+  codes      Code[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Code {
+    id   String @id @default(uuid())
+  code String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  used      Boolean  @default(false)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([code]) // Ensure code is unique
+  @@map("code")
+}
+model User {
+  id         String   @id @default(uuid())
+  clerkId    String   @unique
+  email      String   @unique
+  firstname  String
+
+  role       Role     @default(USER)
+  company    Company  @relation(fields: [companyId], references: [id])
+  companyId  String
+  skills     String[]
+
+  tickets    Ticket[] @relation("UserTickets")
+  assigned   Ticket[] @relation("AssignedTickets")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+
+model Ticket {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  status        Status   @default(PENDING)
+  priority      Priority @default(MEDIUM)
+  category      String?
+  createdBy     User     @relation("UserTickets", fields: [createdById], references: [id])
+  createdById   String
+  createdByName String? @default("Unknown")
+  createdByEmail String?
+  createdByRole Role @default(USER)
+  assignedTo    User?    @relation("AssignedTickets", fields: [assignedToId], references: [id]) // Nullable for unassigned tickets
+  assignedToId  String? // Nullable for unassigned tickets
+  assignedToName String? @default("Unassigned")
+  assignedToEmail String? 
+  assignedToRole Role @default(USER)
+  company       Company  @relation(fields: [companyId], references: [id])
+  companyId     String
+  notes         String?
+  relatedSkills String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum Status {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
