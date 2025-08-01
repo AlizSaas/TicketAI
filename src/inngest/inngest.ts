@@ -6,8 +6,7 @@ import { Inngest } from 'inngest';
 export const inngest = new Inngest({
   id: 'ticketing-system',
   name: 'Ticketing System Inngest',
-   eventKey: process.env.INNGEST_EVENT_KEY, // Add this line explicitly
-  signingKey: process.env.INNGEST_SIGNING_KEY // Add this line explicitly
+ 
 
   
 
