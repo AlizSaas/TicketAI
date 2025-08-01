@@ -6,7 +6,9 @@ export const { POST,GET,PUT } = serve({
     client: inngest,
     functions:[
         assignTicket,
-        updateTicketStatus
+        updateTicketStatus,
+        
+
     ]
 })
 
