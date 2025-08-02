@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import {ClerkProvider} from '@clerk/nextjs'
 import ReactQueryProvider from "../../react-query-provider";
+import { Analytics } from "@vercel/analytics/next"
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,7 +31,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`} >
     
-        <ReactQueryProvider> {children} </ReactQueryProvider>
+        <ReactQueryProvider>
+         {children}
+        <Analytics />
+        
+         </ReactQueryProvider>
         <Toaster position="top-right" />
       </body>
     </html>
