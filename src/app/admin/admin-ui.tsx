@@ -96,9 +96,9 @@ const handleDeleteUser = async (userId: string) => {
     await deleteUser(userId);
     toast.success("User deleted successfully!");
     queryClient.invalidateQueries({ queryKey: ["adminData"] });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check for specific error message from backend
-    if (error?.message?.includes("cannot delete an ADMIN")) {
+    if (typeof error === "object" && error !== null && "message" in error && typeof (error as { message?: string }).message === "string" && (error as { message: string }).message.includes("cannot delete an ADMIN")) {
       toast.error("You cannot delete an admin user.");
     } else {
       toast.error("Failed to delete user.");
@@ -113,6 +113,7 @@ const  handleDeleteTicket = async (ticketId: string) => {
     queryClient.invalidateQueries({ queryKey: ["adminData"] });
   } catch (error) {
     toast.error("Failed to delete ticket.");
+    console.error("Delete ticket error:", error);
   }
 }
 
