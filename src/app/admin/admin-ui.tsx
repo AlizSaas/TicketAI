@@ -42,13 +42,18 @@ import { AllCompanyData, UserFilters, TicketFilters } from "@/lib/types"
 import InfiniteScrollContainer from "@/components/infinite-scroll-container"
 
 import { getRoleBadge, getStatusBadge, getPriorityBadge } from "@/lib/adminFun"
+import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs"
+import { deleteTicket, deleteUser } from "./action"
 
 
 
 export default function AdminDashboard() {
+  const { user: userLogged } = useUser()
   const [selectedUser, setSelectedUser] = useState<AllCompanyData["users"][number] | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedTicket, setSelectedTicket] = useState<AllCompanyData["tickets"][number] | null>(null)
+  const queryClient = useQueryClient();
 
   // Filter states
   const [userFilters, setUserFilters] = useState<UserFilters>({
@@ -79,6 +84,37 @@ export default function AdminDashboard() {
 
   // Add this after the existing useQuery hook
   const  deleteCode = useDeleteCodeMutation()
+  
+  const handleUserRoleUpdated = () => {
+  queryClient.invalidateQueries({ queryKey: ["adminData"] });
+  userLogged?.reload()
+  setSelectedUser(null); // Optionally close the modal
+};
+
+const handleDeleteUser = async (userId: string) => {
+  try {
+    await deleteUser(userId);
+    toast.success("User deleted successfully!");
+    queryClient.invalidateQueries({ queryKey: ["adminData"] });
+  } catch (error: any) {
+    // Check for specific error message from backend
+    if (error?.message?.includes("cannot delete an ADMIN")) {
+      toast.error("You cannot delete an admin user.");
+    } else {
+      toast.error("Failed to delete user.");
+    }
+  }
+}
+
+const  handleDeleteTicket = async (ticketId: string) => {
+  try {
+    await deleteTicket(ticketId);
+    toast.success("Ticket deleted successfully!");
+    queryClient.invalidateQueries({ queryKey: ["adminData"] });
+  } catch (error) {
+    toast.error("Failed to delete ticket.");
+  }
+}
 
   // Get unique values for filter dropdowns
   const uniqueCategories = useMemo(() => {
@@ -218,6 +254,8 @@ export default function AdminDashboard() {
       search: "",
     })
   }
+
+
 
   const hasActiveUserFilters = userFilters.role !== "ALL" || userFilters.search !== ""
   const hasActiveTicketFilters =
@@ -503,10 +541,10 @@ export default function AdminDashboard() {
                         <TableHead>User</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Skills</TableHead>
-                        <TableHead>Tickets Created</TableHead>
-                        <TableHead>Tickets Assigned</TableHead>
+                       
                         <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
+                        <TableHead>Delete</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -536,12 +574,7 @@ export default function AdminDashboard() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{user._count?.tickets || 0}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{user._count?.assigned || 0}</Badge>
-                          </TableCell>
+                          
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
@@ -549,6 +582,13 @@ export default function AdminDashboard() {
                                 Manage
                               </Button>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                             size="sm" variant="outline" onClick={() => handleDeleteUser(user.id)}>
+                             <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -797,6 +837,7 @@ export default function AdminDashboard() {
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Actions</TableHead>
+                        <TableHead>Delete</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -818,7 +859,7 @@ export default function AdminDashboard() {
                               {getRoleBadge(ticket.createdByRole)}
                               <div>
                                 <div className="font-medium">{ticket.createdByName}</div>
-                                <div className="text-sm text-gray-500">{ticket.createdByEmail}</div>
+                              
                               </div>
                             </div>
                           </TableCell>
@@ -838,6 +879,11 @@ export default function AdminDashboard() {
                           <TableCell>
                             <Button onClick={() => setSelectedTicket(ticket)} size="sm" variant="outline">
                               View Details
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button onClick={() => handleDeleteTicket(ticket.id)} size="sm" variant="outline">
+                            <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1038,7 +1084,7 @@ export default function AdminDashboard() {
 
         {/* User Management Modal */}
         {selectedUser && (
-          <ManageUserModal user={selectedUser} isOpen={!!selectedUser} onClose={() => setSelectedUser(null)} />
+          <ManageUserModal user={selectedUser} isOpen={!!selectedUser} onClose={() => setSelectedUser(null)} onUpdate={handleUserRoleUpdated} />
         )}
       </div>
     </div>

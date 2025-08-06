@@ -22,7 +22,7 @@ import {
   Edit,
   MessageSquare,
 } from "lucide-react"
-import { useState } from "react"
+
 import type { $Enums } from "@prisma/client"
 import Link from "next/link"
 
@@ -53,7 +53,7 @@ interface SingleITicketPageProps {
 }
 
 export default function SingleITicketPage({ userData: ticketData }: SingleITicketPageProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+
 
   if (!ticketData) {
     return (
@@ -187,7 +187,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
@@ -196,7 +196,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Comment
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -385,38 +385,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
             </Card>
 
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {ticketData.status === "PENDING" && (
-                  <Button className="w-full" size="sm">
-                    <Loader2 className="w-4 h-4 mr-2" />
-                    Start Working
-                  </Button>
-                )}
-                {ticketData.status === "IN_PROGRESS" && (
-                  <>
-                    <Button className="w-full bg-green-600 hover:bg-green-700" size="sm">
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Mark Resolved
-                    </Button>
-                    <Button variant="destructive" className="w-full" size="sm">
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reject Ticket
-                    </Button>
-                  </>
-                )}
-                {(ticketData.status === "RESOLVED" || ticketData.status === "REJECTED") && (
-                  <div className="text-center py-2">
-                    <Badge variant="outline" className="text-sm">
-                      {ticketData.status === "RESOLVED" ? "Completed" : "Closed"}
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            
           </div>
         </div>
       </div>

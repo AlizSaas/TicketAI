@@ -46,7 +46,7 @@ model User {
   firstname  String
 
   role       Role     @default(USER)
-  company    Company  @relation(fields: [companyId], references: [id])
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId  String
   skills     String[]
 
@@ -64,7 +64,7 @@ model Ticket {
   status        Status   @default(PENDING)
   priority      Priority @default(MEDIUM)
   category      String?
-  createdBy     User     @relation("UserTickets", fields: [createdById], references: [id])
+  createdBy     User     @relation("UserTickets", fields: [createdById], references: [id],onDelete: Cascade)
   createdById   String
   createdByName String? @default("Unknown")
   createdByEmail String?

@@ -47,3 +47,44 @@ export  async function deleteTicket(id: string) {
 
    return deletedTicket
 }
+
+export async function updateUserSkills(userId: string, skills: string[]) {
+  // Validate that the requester is an admin
+ const adminUser  = await getAdminUser()
+
+  // Update the user's skills in the database
+  const updatedUser = await prisma.user.update({
+    where: { id: userId, companyId: adminUser.companyId },
+    data: { skills },
+  });
+
+  return updatedUser;
+}
+export async function deleteUser(userId: string) {
+  // Validate that the requester is an admin
+  const adminUser = await getAdminUser();
+
+  // Fetch the user to check their role
+  const userToDelete = await prisma.user.findUnique({
+    where: { id: userId, companyId: adminUser.companyId },
+  });
+  if (!userToDelete) {
+    throw new Error("User not found.");
+  }
+
+  // Prevent deleting an ADMIN
+  if (userToDelete.role === "ADMIN") {
+    throw new Error("You cannot delete an ADMIN user.");
+  }
+
+  // Delete the user from the database
+  const deletedUser = await prisma.user.delete({
+    where: { id: userId, companyId: adminUser.companyId },
+  });
+
+  // Optionally, remove the user from Clerk
+  await (await clerkClient()).users.deleteUser(deletedUser.clerkId);
+
+  return deletedUser;
+}
+
