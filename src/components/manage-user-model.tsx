@@ -153,7 +153,7 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-2 mb-2">
                     <Users className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{userState.firstname}</span>
+                    <span className="font-medium">{userState.firstname || "Unknown"}</span>
                   </div>
                   <p className="text-sm text-gray-600">{userState.email}</p>
                   <p className="text-sm text-gray-600">Company: {userState.id}</p>

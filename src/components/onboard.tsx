@@ -29,7 +29,6 @@ enum Role {
 
 // Form validation schemas
 const userFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
   email: z.string().email("Invalid email address"),
   invitationCode: z
     .string()
@@ -38,7 +37,6 @@ const userFormSchema = z.object({
 })
 
 const moderatorFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
   email: z.string().email("Invalid email address"),
   invitationCode: z
     .string()
@@ -47,7 +45,6 @@ const moderatorFormSchema = z.object({
 })
 
 const adminFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
   email: z.string().email("Invalid email address"),
   companyName: z.string().min(1, "Company name is required"),
   
@@ -59,7 +56,6 @@ type AdminFormValues = z.infer<typeof adminFormSchema>
 
 interface OnboardingFormProps {
   userEmail: string
-  firstName: string
 }
 
 // Placeholder action functions - replace with your actual implementations
@@ -68,7 +64,7 @@ interface OnboardingFormProps {
 
 
 
-const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
+const OnboardingForm = ({ userEmail }: OnboardingFormProps) => {
   const router = useRouter()
   const { user, isLoaded } = useUser()
   const [selectedRole, setSelectedRole] = useState<Role>(Role.USER)
@@ -78,7 +74,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
   const userForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      firstName,
       email: userEmail,
       invitationCode: "",
     },
@@ -87,7 +82,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
   const moderatorForm = useForm<ModeratorFormValues>({
     resolver: zodResolver(moderatorFormSchema),
     defaultValues: {
-      firstName: firstName || "",
       email: userEmail,
       invitationCode: "",
     },
@@ -96,7 +90,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
   const adminForm = useForm<AdminFormValues>({
     resolver: zodResolver(adminFormSchema),
     defaultValues: {
-      firstName: firstName || "",
       email: userEmail,
       companyName: "",
   
@@ -248,19 +241,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
                   <div className="space-y-4">
                     <FormField
                       control={userForm.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled className="bg-gray-100" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={userForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -316,19 +296,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
                   <div className="space-y-4">
                     <FormField
                       control={moderatorForm.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled className="bg-gray-100" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={moderatorForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -382,19 +349,6 @@ const OnboardingForm = ({ userEmail, firstName }: OnboardingFormProps) => {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Personal Information</h3>
                   <div className="space-y-4">
-                    <FormField
-                      control={adminForm.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled className="bg-gray-100" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={adminForm.control}
                       name="email"

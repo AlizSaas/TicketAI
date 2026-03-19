@@ -21,8 +21,6 @@ export default async function Onboarding() {
         <p className="text-gray-600">Welcome to BikeRequest! Let&apos;s get you set up.</p>
       </div>
       <OnboardingForm
-        firstName={user.firstName || ""}
-   
         userEmail={user.emailAddresses[0]?.emailAddress || ""}
        
       />

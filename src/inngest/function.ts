@@ -188,7 +188,7 @@ Description: ${ticket.description}`
       console.log("Finding moderators for keywords:", uniqueKeywords);
       console.log("Available moderators:", allModerators.map(m => ({
         id: m.id,
-        name: m.firstname,
+        name: m.firstname || "Unknown",
         skills: m.skills
       })));
 
@@ -204,7 +204,7 @@ Description: ${ticket.description}`
         ];
         
         // Debug log
-        console.log(`\nModerator ${moderator.firstname}:`);
+        console.log(`\nModerator ${moderator.firstname || "Unknown"}:`);
         console.log(`Skills: ${moderator.skills.join(', ')}`);
         console.log(`Keywords: ${moderatorKeywords.join(', ')}`);
         
@@ -256,7 +256,7 @@ Description: ${ticket.description}`
       
       console.log("Moderator ranking:");
       scoredModerators.forEach(m => {
-        console.log(`${m.firstname}: score ${m.matchScore} (direct: ${m.directSkillMatches}, keywords: ${m.keywordMatches}), matches: ${m.matches.join(', ')}`);
+        console.log(`${m.firstname || "Unknown"}: score ${m.matchScore} (direct: ${m.directSkillMatches}, keywords: ${m.keywordMatches}), matches: ${m.matches.join(', ')}`);
       });
 
       const bestMatch = scoredModerators[0];
@@ -267,7 +267,7 @@ Description: ${ticket.description}`
           requiredKeywords: uniqueKeywords,
           availableModerators: allModerators.map(m => ({
             id: m.id,
-            name: m.firstname,
+            name: m.firstname || "Unknown",
             skills: m.skills
           }))
         });
@@ -285,7 +285,7 @@ Description: ${ticket.description}`
 
       console.log('Best moderator match found:', {
         id: bestMatch.id,
-        name: bestMatch.firstname,
+        name: bestMatch.firstname || "Unknown",
         skills: bestMatch.skills,
         matchScore: bestMatch.matchScore,
         directMatches: bestMatch.directSkillMatches,
