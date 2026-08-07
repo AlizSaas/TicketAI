@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -42,15 +42,19 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
   const [isLoading, setIsLoading] = useState(false)
   const [isSkillsLoading, setIsSkillsLoading] = useState(false)
   const [userState, setUserState] = useState(user) // local state for displayed user
+  const [prevUser, setPrevUser] = useState(user)
 
   const { user: loggedUser } = useUser() // Get the currently logged-in user
 
-  // Update local state when user prop changes (e.g., after a successful update and re-fetch)
-  useEffect(() => {
+  // Update local state when user prop changes (e.g., after a successful update and re-fetch).
+  // Adjusted during render (React's recommended pattern) instead of in an effect, to avoid
+  // triggering an extra cascading render.
+  if (user !== prevUser) {
+    setPrevUser(user)
     setUserState(user)
     setSelectedRole(user.role)
     setCurrentSkills(user.skills)
-  }, [user])
+  }
 
   // Check if the logged-in user is trying to manage their own account
   const isManagingSelf = loggedUser?.id === userState.clerkId
