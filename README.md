@@ -21,7 +21,7 @@ A modern ticket management system built with Next.js, React Query, and Clerk aut
 - **Frontend**: Next.js with App Router
 - **Data Fetching**: TanStack React Query (v5)
 - **Authentication**: Clerk
-- **UI Components**: Custom styling with CSS modules
+- **UI Components**: shadcn
 - **Notifications**: Sonner toast library
 
 ## Getting Started
