@@ -49,7 +49,7 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
   // Update local state when user prop changes (e.g., after a successful update and re-fetch).
   // Adjusted during render (React's recommended pattern) instead of in an effect, to avoid
   // triggering an extra cascading render.
-  if (user !== prevUser) {
+  if (user.clerkId !== prevUser.clerkId) {
     setPrevUser(user)
     setUserState(user)
     setSelectedRole(user.role)
