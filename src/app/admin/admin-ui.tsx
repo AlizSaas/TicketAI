@@ -25,6 +25,7 @@ import {
   Key,
   Trash2,
   RefreshCwIcon,
+  Sparkles,
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -303,12 +304,20 @@ const  handleDeleteTicket = async (ticketId: string) => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Company Dashboard</h1>
-          <p className="text-gray-600 mt-2">
-            Manage your company users, moderators, and tickets - {data._count?.users || 0} users,{" "}
-            {data._count?.tickets || 0} tickets
-          </p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Company Dashboard</h1>
+            <p className="text-gray-600 mt-2">
+              Manage your company users, moderators, and tickets - {data._count?.users || 0} users,{" "}
+              {data._count?.tickets || 0} tickets
+            </p>
+          </div>
+          <Button asChild className="shrink-0 gap-2">
+            <Link href="/admin/ai">
+              <Sparkles className="h-4 w-4" />
+              Admin AI Assistant
+            </Link>
+          </Button>
         </div>
 
         {/* Company Stats */}
