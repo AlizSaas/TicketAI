@@ -18,7 +18,7 @@ export default async function Onboarding() {
     <div className="container max-w-2xl mx-auto py-10">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Complete your profile</h1>
-        <p className="text-gray-600">Welcome to BikeRequest! Let&apos;s get you set up.</p>
+        <p className="text-gray-600">Welcome to TicketFlow! Let&apos;s get you set up.</p>
       </div>
       <OnboardingForm
         userEmail={user.emailAddresses[0]?.emailAddress || ""}

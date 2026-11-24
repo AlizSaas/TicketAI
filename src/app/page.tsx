@@ -18,10 +18,10 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4">
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                 <Button variant="ghost">Sign In</Button>
               </SignInButton>
-              <SignUpButton mode="modal">
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                 <Button>Get Started</Button>
               </SignUpButton>
             </SignedOut>
@@ -43,19 +43,19 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <SignedOut>
-              <SignUpButton mode="modal">
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                 <Button size="lg" className="text-lg px-8 py-3">
                   Start Free Trial
                 </Button>
               </SignUpButton>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                 <Button variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent">
                   Sign In
                 </Button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
-              <Link href="/onboarding">
+              <Link href="/dashboard">
                 <Button size="lg" className="text-lg px-8 py-3">
                   Go to Dashboard
                 </Button>
@@ -248,7 +248,7 @@ export default function HomePage() {
           </p>
 
           <SignedOut>
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
               <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
                 Get Started Free
               </Button>

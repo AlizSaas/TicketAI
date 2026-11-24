@@ -1,43 +1,24 @@
-import React from 'react'
 import ModeratorDashboard from './mod-ui'
 import { validateAuthRequest } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
+import { getRoleHome } from '@/lib/roles'
 
 export default async function page() {
   const user = await validateAuthRequest()
-  const userDb = await prisma.user.findUnique({
-  where: { clerkId: user.id,role:'MODERATOR' },
 
- // adjust relation name as per your schema
-});
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: user.id },
+    select: { role: true },
+  })
 
-if(!userDb) {
-  return (
-    <div>
-      <h1>
-        This is a moderator dashboard, but you are not authenticated as a moderator.
-      </h1>
-    </div>
-  )
-}
+  if (!dbUser) {
+    redirect('/onboarding')
+  }
 
-const assignedTickets = await prisma.ticket.findMany({
-  where:{
-    assignedToId: userDb.id,
-  
-  },
+  if (dbUser.role !== 'MODERATOR') {
+    redirect(getRoleHome(dbUser.role))
+  }
 
-  
-})
-
-
-if(!assignedTickets) {
-  return <div>No assigned tickets</div>
-}
-
-
-
-  return (
-  <ModeratorDashboard />
-  )
+  return <ModeratorDashboard />
 }

@@ -1,33 +1,21 @@
 import { prisma } from '@/lib/prisma'
-import { validateAuthRequest } from '@/lib/auth'
-import { NextRequest } from 'next/server';
+import { getSessionUser } from '@/lib/server-only'
 
-export async function GET(req: NextRequest) {
-  const loggedInUser = await validateAuthRequest();
-  if (!loggedInUser) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userDb = await prisma.user.findUnique({
-    where: { clerkId: loggedInUser.id },
-  });
+export async function GET() {
+  const userDb = await getSessionUser()
 
   if (!userDb) {
-    return Response.json({ error: "User not found" }, { status: 404 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const userData = await prisma.user.findUnique({
-    where: {
-      clerkId: userDb.clerkId,
-    },
+    where: { id: userDb.id },
     select: {
       tickets: {
-        orderBy: {
-          createdAt: 'desc', // Change 'createdAt' to your ticket's date field if different
-        },
+        orderBy: { createdAt: 'desc' },
       },
     },
-  });
+  })
 
-  return Response.json(userData, { status: 200 });
+  return Response.json(userData, { status: 200 })
 }

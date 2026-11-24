@@ -12,7 +12,7 @@ import { Ticket, Clock, CheckCircle, XCircle, Loader2, Eye, TrendingUp, Filter, 
 import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import { makeTicketInProgress } from "./action" // Update with correct path
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import kyInstance from "@/lib/ky"
 import { useUpdateTicketStatus } from "./use-mutation"
 import type { AssignedTicket } from "@/lib/types"
@@ -45,10 +45,10 @@ export default function ModeratorDashboard() {
     },
   })
 
+  const queryClient = useQueryClient()
   const { mutate: updateStatus, isPending } = useUpdateTicketStatus()
 
   const assignedTickets = useMemo(() => data?.assignedTickets || [], [data])
-  console.log("Assigned Tickets:", assignedTickets)
 
   // Get unique categories for filter dropdown
   const uniqueCategories = useMemo(() => {
@@ -62,7 +62,9 @@ export default function ModeratorDashboard() {
     return assignedTickets.filter((ticket) => {
       const statusMatch = filters.status === "ALL" || ticket.status === filters.status
       const priorityMatch = filters.priority === "ALL" || ticket.priority === filters.priority
-      const categoryMatch = filters.category === "ALL" || ticket.category === filters.category
+      const categoryMatch =
+        filters.category === "ALL" ||
+        (filters.category === "null" ? !ticket.category : ticket.category === filters.category)
 
       return statusMatch && priorityMatch && categoryMatch
     })
@@ -136,29 +138,17 @@ export default function ModeratorDashboard() {
     )
   }
 
-  const handleResolveTicket = async () => {
+  // Success/error toasts and cache updates are handled by the mutation hook
+  const handleResolveTicket = () => {
     if (!selectedTicket) return
-    try {
-      updateStatus({ ticketId: selectedTicket.id, status: "RESOLVED" })
-      toast.success("Ticket resolved successfully!")
-      setSelectedTicket(null)
-    } catch (error) {
-      toast.error("Failed to resolve ticket")
-      console.error("Error resolving ticket:", error)
-    }
+    updateStatus({ ticketId: selectedTicket.id, status: "RESOLVED" })
+    setSelectedTicket(null)
   }
 
-  const handleRejectTicket = async () => {
+  const handleRejectTicket = () => {
     if (!selectedTicket) return
-
-    try {
-      updateStatus({ ticketId: selectedTicket.id, status: "REJECTED" })
-      toast.success("Ticket rejected")
-      setSelectedTicket(null)
-    } catch (error) {
-      toast.error("Failed to reject ticket")
-      console.error("Error rejecting ticket:", error)
-    }
+    updateStatus({ ticketId: selectedTicket.id, status: "REJECTED" })
+    setSelectedTicket(null)
   }
 
   const handleStartWorking = async (ticketId: string) => {
@@ -166,8 +156,9 @@ export default function ModeratorDashboard() {
       await makeTicketInProgress(ticketId, "IN_PROGRESS")
       setSelectedTicket(null)
       toast.success("Ticket is now in progress")
-      window.location.reload() // Refresh the page to reflect changes
+      await queryClient.invalidateQueries({ queryKey: ["assignedTickets"] })
     } catch (error) {
+      console.error("Failed to start ticket:", error)
       toast.error("Failed to update ticket status")
     }
   }
@@ -191,8 +182,16 @@ export default function ModeratorDashboard() {
 
   if (error) {
     console.error("Error fetching assigned tickets:", error)
-    toast.error("Failed to load assigned tickets")
-    return <div className="text-red-500">Failed to load assigned tickets</div>
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto text-center py-12">
+          <p className="text-red-600 mb-4">Failed to load assigned tickets.</p>
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["assignedTickets"] })}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
