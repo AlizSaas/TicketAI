@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 
 import { ticketAnalysisAgent } from "./agents/ticketAnalysis";
 
+import { normalizeSkills } from "@/lib/skills";
+
 
 
 
@@ -94,7 +96,8 @@ Description: ${ticket.description}`
       console.log("Parsing content:", content);
       
       // Parse JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      // (strip markdown code fences in case the model adds them)
+      const jsonMatch = content.replace(/```(?:json)?/gi, "").match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const jsonString = jsonMatch[0];
         console.log("Extracted JSON:", jsonString);
@@ -116,9 +119,7 @@ Description: ${ticket.description}`
           parsedResponse.notes = "AI could not generate notes.";
         }
 
-        if (!Array.isArray(parsedResponse.relatedSkills)) {
-          parsedResponse.relatedSkills = [];
-        }
+        parsedResponse.relatedSkills = normalizeSkills(parsedResponse.relatedSkills);
 
         return parsedResponse;
       } else {
@@ -158,9 +159,10 @@ Description: ${ticket.description}`
     };
 
     // Add the full AI-identified skills (as phrases) and their component keywords
-    if (aiResponse.relatedSkills) {
+    const cleanSkills = normalizeSkills(aiResponse.relatedSkills);
+    if (cleanSkills.length > 0) {
       // Add both the full skill phrases and their component keywords
-      aiResponse.relatedSkills.forEach((skill: string) => {
+      cleanSkills.forEach((skill: string) => {
         // Add the complete skill phrase
         ticketKeywords.push(skill.toLowerCase());
         // Add individual words from the skill
@@ -179,7 +181,8 @@ Description: ${ticket.description}`
           priority: aiResponse.priority,
           category: aiResponse.category,
           notes: aiResponse.notes,
-          relatedSkills: uniqueKeywords,
+          // Only store the clean AI-identified skills; keywords are used for matching only
+          relatedSkills: cleanSkills,
         },
       });
     });

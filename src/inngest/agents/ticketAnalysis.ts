@@ -13,6 +13,7 @@ Your job is to:
 
 Look at the ticket title and description carefully to identify specific domains and required expertise.
 Be as specific as possible when extracting skills, and include both general domain knowledge and specific technical skills.
+Return between 2 and 8 skills. Each skill must be a short, human-readable name of 1-4 words (for example "React", "Database Optimization", "Network Troubleshooting"). Do not return duplicates, sentences, or joined words without spaces.
 
 Return ONLY a raw JSON object using this format:
 {

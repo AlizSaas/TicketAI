@@ -19,12 +19,12 @@ import {
   Tag,
   Users,
   ArrowLeft,
-  Edit,
   MessageSquare,
 } from "lucide-react"
 
 import type { $Enums } from "@prisma/client"
 import Link from "next/link"
+import { normalizeSkills } from "@/lib/skills"
 
 type TicketData = {
   id: string
@@ -65,7 +65,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Ticket Not Found</h2>
               <p className="text-gray-600 mb-4">The ticket you&apos;re looking for doesn&apos;t exist or has been removed.</p>
               <Button asChild>
-                <Link href="/dashboard">
+                <Link href="/admin">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Dashboard
                 </Link>
@@ -76,6 +76,8 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
       </div>
     )
   }
+
+  const skills = normalizeSkills(ticketData.relatedSkills, 30)
 
   const getStatusBadge = (status: $Enums.Status) => {
     switch (status) {
@@ -89,7 +91,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
       case "IN_PROGRESS":
         return (
           <Badge variant="outline" className="text-blue-600 border-blue-600 bg-blue-50">
-            <Loader2 className="w-4 h-4 mr-2" />
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             In Progress
           </Badge>
         )
@@ -170,12 +172,12 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
           </Button>
 
           <div className="flex items-start justify-between">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
                 <Ticket className="w-6 h-6 text-gray-600" />
                 <span className="text-sm text-gray-500 font-mono">#{ticketData.id.slice(-8)}</span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-3">{ticketData.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3 break-words">{ticketData.title}</h1>
               <div className="flex items-center gap-3 flex-wrap">
                 {getStatusBadge(ticketData.status)}
                 {getPriorityBadge(ticketData.priority)}
@@ -214,13 +216,13 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{ticketData.description}</p>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{ticketData.description}</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Related Skills */}
-            {ticketData.relatedSkills.length > 0 && (
+            {skills.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -231,9 +233,9 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {ticketData.relatedSkills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-sm capitalize">
-                        {skill.replace(/([a-z])([A-Z])/g, '$1 $2')}
+                    {skills.map((skill) => (
+                      <Badge key={skill.toLowerCase()} variant="secondary" className="text-sm capitalize">
+                        {skill}
                       </Badge>
                     ))}
                   </div>
@@ -253,7 +255,7 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{ticketData.notes}</p>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{ticketData.notes}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -334,8 +336,8 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                   <div>
                     <div className="font-medium text-gray-900">{ticketData.createdByName || "Unknown User"}</div>
                     {ticketData.createdByEmail && (
-                      <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                        <Mail className="w-3 h-3" />
+                      <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 break-all">
+                        <Mail className="w-3 h-3 shrink-0" />
                         {ticketData.createdByEmail}
                       </div>
                     )}
@@ -363,8 +365,8 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                           {ticketData.assignedToName || "Unknown Assignee"}
                         </div>
                         {ticketData.assignedToEmail && (
-                          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                            <Mail className="w-3 h-3" />
+                          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 break-all">
+                            <Mail className="w-3 h-3 shrink-0" />
                             {ticketData.assignedToEmail}
                           </div>
                         )}
@@ -376,9 +378,6 @@ export default function SingleITicketPage({ userData: ticketData }: SingleITicke
                   <div className="text-center py-4">
                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-500">Not assigned yet</p>
-                    <Button size="sm" className="mt-2">
-                      Assign Ticket
-                    </Button>
                   </div>
                 )}
               </CardContent>
