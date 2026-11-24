@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useUser } from "@clerk/nextjs"
+import { useSession, useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { useRouter } from "next/navigation"
 import { RadioGroup } from "@radix-ui/react-radio-group"
 import { RadioGroupItem } from "./ui/radio-group"
 import { cn } from "@/lib/utils"
@@ -19,6 +18,7 @@ import { toast } from "sonner"
 import { User, Shield, Crown } from "lucide-react"
 import * as z from "zod"
 import { createAdmin, createModerator, createUser } from "@/lib/onboardAction"
+import { getRoleHome } from "@/lib/roles"
 
 // Role enum
 enum Role {
@@ -65,8 +65,8 @@ interface OnboardingFormProps {
 
 
 const OnboardingForm = ({ userEmail }: OnboardingFormProps) => {
-  const router = useRouter()
   const { user, isLoaded } = useUser()
+  const { session } = useSession()
   const [selectedRole, setSelectedRole] = useState<Role>(Role.USER)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -96,74 +96,63 @@ const OnboardingForm = ({ userEmail }: OnboardingFormProps) => {
     },
   })
 
-  const handleUserSubmit = async (data: UserFormValues) => {
+  const completeOnboarding = async (
+    action: () => Promise<{ success?: boolean; role?: string; error?: string }>,
+    successMessage: string,
+    failureMessage: string,
+  ) => {
     if (!user) return
     setError(null)
     setIsSubmitting(true)
 
-    const { error, success } = await createUser(user.id, data.invitationCode)
-
-    if (!success) {
-      setError(error ?? "Something went wrong.")
-      toast.error(error ?? "Failed to join company. Please try again.")
-      setIsSubmitting(false)
-      return
-    }
-
-    toast.success("Successfully joined company!")
     try {
-      await user.reload()
+      const result = await action()
+
+      if (!result.success) {
+        setError(result.error ?? "Something went wrong.")
+        toast.error(result.error ?? failureMessage)
+        setIsSubmitting(false)
+        return
+      }
+
+      toast.success(successMessage)
+      try {
+        await user.reload()
+        // Force a fresh session token so the middleware sees the new onboarding metadata
+        await session?.getToken({ skipCache: true })
+      } catch (err) {
+        console.error("Failed to refresh session:", err)
+      }
+      // Full navigation so the middleware and server components pick up the refreshed session
+      window.location.assign(getRoleHome(result.role))
     } catch (err) {
-      console.error("Failed to reload user:", err)
+      console.error("Onboarding failed:", err)
+      setError("Something went wrong. Please try again.")
+      toast.error(failureMessage)
+      setIsSubmitting(false)
     }
-    router.push("/dashboard")
   }
 
-  const handleModeratorSubmit = async (data: ModeratorFormValues) => {
-    if (!user) return
-    setError(null)
-    setIsSubmitting(true)
+  const handleUserSubmit = (data: UserFormValues) =>
+    completeOnboarding(
+      () => createUser(data.invitationCode),
+      "Successfully joined company!",
+      "Failed to join company. Please try again.",
+    )
 
-    const { error, success } = await createModerator(user.id, data.invitationCode)
+  const handleModeratorSubmit = (data: ModeratorFormValues) =>
+    completeOnboarding(
+      () => createModerator(data.invitationCode),
+      "Successfully joined company as moderator!",
+      "Failed to join company. Please try again.",
+    )
 
-    if (!success) {
-      setError(error ?? "Something went wrong.")
-      toast.error(error ?? "Failed to join company. Please try again.")
-      setIsSubmitting(false)
-      return
-    }
-
-    toast.success("Successfully joined company as moderator!")
-    try {
-      await user.reload()
-    } catch (err) {
-      console.error("Failed to reload user:", err)
-    }
-    router.push("/moderator")
-  }
-
-  const handleAdminSubmit = async (data: AdminFormValues) => {
-    if (!user) return
-    setError(null)
-    setIsSubmitting(true)
-
-    const { error, success } = await createAdmin(user.id, data.companyName)
-
-    if (!success) {
-      setError(error ?? "Something went wrong.")
-      toast.error(error ?? "Failed to create company. Please try again.")
-      setIsSubmitting(false)
-      return
-    }
-
-    toast.success("Company created successfully!")
-    try {
-      await user.reload()
-    } catch (err) {
-      console.error("Failed to reload user:", err)
-    }
-    router.push("/admin")
-  }
+  const handleAdminSubmit = (data: AdminFormValues) =>
+    completeOnboarding(
+      () => createAdmin(data.companyName),
+      "Company created successfully!",
+      "Failed to create company. Please try again.",
+    )
 
   if (!isLoaded) {
     return <div>Loading...</div>
@@ -174,7 +163,7 @@ const OnboardingForm = ({ userEmail }: OnboardingFormProps) => {
       value: Role.USER,
       icon: User,
       title: "User",
-      description: "Join a company to request bikes",
+      description: "Join a company to submit support tickets",
     },
     {
       value: Role.MODERATOR,
@@ -194,7 +183,7 @@ const OnboardingForm = ({ userEmail }: OnboardingFormProps) => {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Complete your account setup</CardTitle>
-        <CardDescription>Welcome to BikeRequest! Let&apos;s get you onboarded.</CardDescription>
+        <CardDescription>Welcome to TicketFlow! Let&apos;s get you onboarded.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">

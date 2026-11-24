@@ -170,6 +170,19 @@ export default function UserDashboard() {
     return <CustomersTableSkeleton />
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-6xl mx-auto text-center py-12">
+          <p className="text-red-600 mb-4">Failed to load your tickets.</p>
+          <Button variant="outline" onClick={() => refetch()}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -217,16 +230,14 @@ export default function UserDashboard() {
     )
   }
 
-  const handleSubmitTicket = async (data: TicketFormValues) => {
-    try {
-      mutate(data)
-      toast.success("Ticket submitted successfully! You'll be notified when it's assigned.")
-      setIsCreateModalOpen(false)
-      form.reset()
-    } catch (error) {
-      console.error("Failed to submit ticket:", error)
-      toast.error("Failed to submit ticket. Please try again.")
-    }
+  const handleSubmitTicket = (data: TicketFormValues) => {
+    // Success/error toasts are handled by the mutation; only close the dialog once the ticket is saved
+    mutate(data, {
+      onSuccess: () => {
+        setIsCreateModalOpen(false)
+        form.reset()
+      },
+    })
   }
 
   const getFilterLabel = (filter: string) => {

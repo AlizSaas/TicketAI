@@ -10,6 +10,14 @@ import { ticketAnalysisAgent } from "./agents/ticketAnalysis";
 
 
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export const assignTicket = inngest.createFunction(
   {
     id: "ticket-assign",
@@ -133,18 +141,22 @@ Description: ${ticket.description}`
       ...extractKeywords(ticket.description)
     ];
 
-    // Run the AI analysis
-    const aiResponse = await analyzeTicket({
-      title: ticket.title,
-      description: ticket.description,
+    // Run the AI analysis in a durable step; fall back to defaults so the ticket is still routed
+    const analysis = await step.run("analyze-ticket", async () => {
+      return analyzeTicket({
+        title: ticket.title,
+        description: ticket.description,
+      });
     });
-    console.log("AI analysis response:", aiResponse);
-    if (!aiResponse) {
-      console.error("AI analysis failed or returned no response");
-      throw new Error("AI analysis failed");
-    }
-  
-    
+    console.log("AI analysis response:", analysis);
+
+    const aiResponse: AIAnalysisResponse = analysis ?? {
+      priority: "MEDIUM",
+      category: "Other",
+      notes: "AI analysis was unavailable; please review this ticket manually.",
+      relatedSkills: [],
+    };
+
     // Add the full AI-identified skills (as phrases) and their component keywords
     if (aiResponse.relatedSkills) {
       // Add both the full skill phrases and their component keywords
@@ -182,8 +194,23 @@ Description: ${ticket.description}`
       });
 
       if (allModerators.length === 0) {
-        throw new Error(`No moderators found for company ID ${ticket.companyId}`);
+        console.warn(`No moderators found for company ID ${ticket.companyId}`);
+        return null;
       }
+
+      // Current workload (open tickets) per moderator, used to balance assignments
+      const openCounts = await prisma.ticket.groupBy({
+        by: ["assignedToId"],
+        where: {
+          companyId: ticket.companyId,
+          assignedToId: { in: allModerators.map((m) => m.id) },
+          status: { in: ["PENDING", "IN_PROGRESS"] },
+        },
+        _count: { _all: true },
+      });
+      const openByModerator = new Map(
+        openCounts.map((c) => [c.assignedToId, c._count._all])
+      );
 
       console.log("Finding moderators for keywords:", uniqueKeywords);
       console.log("Available moderators:", allModerators.map(m => ({
@@ -252,7 +279,11 @@ Description: ${ticket.description}`
       });
 
       // Sort by match score (highest first)
-      scoredModerators.sort((a, b) => b.matchScore - a.matchScore);
+      scoredModerators.sort(
+        (a, b) =>
+          b.matchScore - a.matchScore ||
+          (openByModerator.get(a.id) ?? 0) - (openByModerator.get(b.id) ?? 0)
+      );
       
       console.log("Moderator ranking:");
       scoredModerators.forEach(m => {
@@ -261,26 +292,12 @@ Description: ${ticket.description}`
 
       const bestMatch = scoredModerators[0];
 
-      // If no moderator has relevant skills, don't assign automatically
-      if (!bestMatch || !bestMatch.hasRelevantSkills) {
-        console.warn('No moderator with relevant skills found', {
+      // If no moderator has relevant skills, fall back to the least busy moderator
+      // so every ticket always lands on a moderator's dashboard
+      if (!bestMatch.hasRelevantSkills) {
+        console.warn('No moderator with relevant skills found, assigning to least busy moderator', {
           requiredKeywords: uniqueKeywords,
-          availableModerators: allModerators.map(m => ({
-            id: m.id,
-            name: m.firstname || "Unknown",
-            skills: m.skills
-          }))
         });
-        
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: { 
-            status: "PENDING",
-            notes: `No qualified moderators available. Required skills: ${uniqueKeywords.join(', ')}`
-          },
-        });
-        
-        throw new Error("No moderator with relevant skills available");
       }
 
       console.log('Best moderator match found:', {
@@ -307,6 +324,10 @@ Description: ${ticket.description}`
       return bestMatch;
     });
 
+    if (!moderator) {
+      return { success: false, reason: "No moderators available for this company" };
+    }
+
     // Send notification email
     await step.run("send-assignment-notification", async () => {
       const fullTicket = await prisma.ticket.findUnique({
@@ -328,19 +349,19 @@ Description: ${ticket.description}`
 
       const emailSent = await sendEmail({
         to: fullTicket.assignedToEmail,
-        subject: `A ticket has been assigned to you: ${fullTicket.assignedToName}`,
+        subject: `A ticket has been assigned to you: ${fullTicket.title}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
             <h2 style="color: #007BFF;">Ticket Assignment Notification</h2>
-            <p>Dear <strong>${fullTicket.assignedToName}</strong>,</p>
+            <p>Dear <strong>${escapeHtml(fullTicket.assignedToName)}</strong>,</p>
 
             <p>You have been assigned to a new support ticket. Please review the details below:</p>
 
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
-              <p><strong>Title:</strong> ${fullTicket.title}</p>
-              <p><strong>Description:</strong> ${fullTicket.description}</p>
-              <p><strong>Priority:</strong> ${fullTicket.priority}</p>
-              <p><strong>Category:</strong> ${fullTicket.category}</p>
+              <p><strong>Title:</strong> ${escapeHtml(fullTicket.title)}</p>
+              <p><strong>Description:</strong> ${escapeHtml(fullTicket.description)}</p>
+              <p><strong>Priority:</strong> ${escapeHtml(fullTicket.priority)}</p>
+              <p><strong>Category:</strong> ${escapeHtml(fullTicket.category)}</p>
             </div>
 
             <p style="margin-top: 20px;">Please take action as soon as possible.</p>
@@ -435,19 +456,19 @@ async ({ event, step }) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
           <h2 style="color: #007BFF;">Ticket Status Update</h2>
-          <p>Dear <strong>${fullTicket.createdByName}</strong>,</p>
+          <p>Dear <strong>${escapeHtml(fullTicket.createdByName)}</strong>,</p>
 
-          <p>The status of the ticket you are assigned to has been updated. Please review the details below:</p>
+          <p>The status of your ticket has been updated. Please review the details below:</p>
 
           <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
-            <p><strong>Title:</strong> ${fullTicket.title}</p>
-            <p><strong>Description:</strong> ${fullTicket.description}</p>
-            <p><strong>Priority:</strong> ${fullTicket.priority}</p>
-            <p><strong>Category:</strong> ${fullTicket.category}</p>
-            <p><strong>Status:</strong> ${status}</p>
+            <p><strong>Title:</strong> ${escapeHtml(fullTicket.title)}</p>
+            <p><strong>Description:</strong> ${escapeHtml(fullTicket.description)}</p>
+            <p><strong>Priority:</strong> ${escapeHtml(fullTicket.priority)}</p>
+            <p><strong>Category:</strong> ${escapeHtml(fullTicket.category)}</p>
+            <p><strong>Status:</strong> ${escapeHtml(status)}</p>
           </div>
 
-          <p style="margin-top: 20px;">Please take action as necessary.</p>
+          <p style="margin-top: 20px;">Thank you for your patience.</p>
 
           <p>Thank you,<br/>Support Team</p>
         </div>

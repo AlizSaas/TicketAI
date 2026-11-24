@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRoleHome } from '@/lib/roles';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -18,7 +19,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Redirect if user is not logged in and the route is not public
   if (!userId && !isPublicRoute(req)) {
     return redirectToSignIn({ returnBackUrl: req.url });
-  } // If user is logged in, but tries to access a public route, redirect to dashboard
+  }
 
   // Force onboarding if not completed
   if (userId && !sessionClaims?.metadata?.onboardingCompleted && !isOnboardingRoute(req)) {
@@ -26,16 +27,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.redirect(onboardingUrl);
   }
 
-  // If logged in and tries to access onboarding again, redirect based on role
-  if (userId && sessionClaims?.metadata?.onboardingCompleted && isOnboardingRoute(req)) {
-    const role = sessionClaims.metadata.role;
-    const dashboardUrl = new URL(
-      role === 'ADMIN' ? '/admin' :
-      role === 'MODERATOR' ? '/moderator' :
-      '/dashboard',
-      req.url
-    );
-    return NextResponse.redirect(dashboardUrl);
+  // Logged-in, onboarded users hitting the landing page or onboarding go straight to their role dashboard
+  if (userId && sessionClaims?.metadata?.onboardingCompleted && (isOnboardingRoute(req) || req.nextUrl.pathname === '/')) {
+    return NextResponse.redirect(new URL(getRoleHome(sessionClaims.metadata.role), req.url));
   }
 
   // Let everything else pass

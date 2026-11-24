@@ -34,7 +34,7 @@ export async function GET(req:NextRequest) {
             }
         })
 
-        if(!user ) {
+        if(!user || user.role !== 'ADMIN') {
             return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 

@@ -1,27 +1,26 @@
 'use server'
 
-import { validateAuthRequest } from "@/lib/auth";
-import { TicketFormValues } from "./user-dash-ui";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/server-only";
 import { inngest } from "@/inngest/inngest";
 
-export async function createTicket(data: TicketFormValues) {
-  const { title, description } = data;
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 5000;
+
+export async function createTicket(data: { title: string; description: string }) {
+  const title = data.title?.trim();
+  const description = data.description?.trim();
+
+  if (!title || !description) {
+    throw new Error("Title and description are required");
+  }
+
+  if (title.length > MAX_TITLE_LENGTH || description.length > MAX_DESCRIPTION_LENGTH) {
+    throw new Error("Title or description is too long");
+  }
 
   try {
-    const user = await validateAuthRequest();
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { clerkId: user.id },
-    });
-
-    if (!dbUser) {
-      throw new Error("User not found in DB");
-    }
+    const dbUser = await getUser();
 
     const ticket = await prisma.ticket.create({
       data: {
@@ -29,25 +28,28 @@ export async function createTicket(data: TicketFormValues) {
         description,
         createdById: dbUser.id,
         createdByName: dbUser.firstname,
-        createdByEmail: dbUser.email, // ✅ Added email field
-        createdByRole: dbUser.role, // ✅ Added role field
-        companyId: dbUser.companyId, // ✅ Also required by schema
-
-        // priority, category, etc. can be set here if needed
+        createdByEmail: dbUser.email,
+        createdByRole: dbUser.role,
+        companyId: dbUser.companyId,
       },
-    }); 
+    });
 
-
-    await inngest.send({
-        name:'ticket/created.requested',
-        data:{
-            ticketId: ticket.id,
-            title,
-            description,
-            createdById: dbUser.id,
-            companyId: dbUser.companyId,
-        }
-    })
+    // The ticket is already saved; if the event can't be queued the ticket stays PENDING
+    // instead of showing the user an error for a ticket that exists.
+    try {
+      await inngest.send({
+        name: 'ticket/created.requested',
+        data: {
+          ticketId: ticket.id,
+          title,
+          description,
+          createdById: dbUser.id,
+          companyId: dbUser.companyId,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to queue ticket assignment:", error);
+    }
 
     return ticket;
   } catch (error) {

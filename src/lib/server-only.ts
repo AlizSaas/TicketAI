@@ -2,6 +2,7 @@ import 'server-only'
 import { cache } from 'react'
 import { prisma } from './prisma'
 import { validateAuthRequest } from './auth'
+import { currentUser } from '@clerk/nextjs/server'
 
 export const getAdminUser = cache(async () => {
     const authUser = await validateAuthRequest()
@@ -51,3 +52,13 @@ export const getUser = cache(async () => {
     return userDb
 }
 )
+
+// Non-throwing lookup for route handlers: returns the DB user for the signed-in Clerk user, or null
+export async function getSessionUser() {
+    const authUser = await currentUser()
+    if (!authUser) return null
+
+    return prisma.user.findUnique({
+        where: { clerkId: authUser.id },
+    })
+}

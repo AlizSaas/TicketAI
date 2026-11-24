@@ -100,7 +100,7 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
 
   const handleSaveSkills = async () => {
     // Check if skills have actually changed
-    if (JSON.stringify(currentSkills.sort()) === JSON.stringify(userState.skills.sort())) {
+    if (JSON.stringify([...currentSkills].sort()) === JSON.stringify([...userState.skills].sort())) {
       toast.info("No changes to save.")
       return
     }
@@ -160,7 +160,7 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
                     <span className="font-medium">{userState.firstname || "Unknown"}</span>
                   </div>
                   <p className="text-sm text-gray-600">{userState.email}</p>
-                  <p className="text-sm text-gray-600">Company: {userState.id}</p>
+                  <p className="text-sm text-gray-600">User ID: {userState.id}</p>
                   <div className="flex space-x-2 mt-2">
                     <Badge variant="outline">{userState._count?.tickets} tickets created</Badge>
                     <Badge variant="outline">{userState._count?.assigned} tickets assigned</Badge>
@@ -284,7 +284,7 @@ export default function ManageUserModal({ user, isOpen, onClose, onUpdate }: Man
                       onClick={handleSaveSkills}
                       disabled={
                         isSkillsLoading ||
-                        JSON.stringify(currentSkills.sort()) === JSON.stringify(userState.skills.sort())
+                        JSON.stringify([...currentSkills].sort()) === JSON.stringify([...userState.skills].sort())
                       }
                     >
                       {isSkillsLoading ? "Saving..." : "Save Skills"}
